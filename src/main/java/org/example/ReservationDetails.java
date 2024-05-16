@@ -11,11 +11,11 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ReservationDetails {
 
-    private String time;
-    private int partySize;
-    private String date;
+    private String time = "18:30:00";
+    private int partySize = 4;
+    private String date = "2024-05-17";
     private String tableType;
-    private String venuId;
+    private int venuId = 65452;
 
 
 }

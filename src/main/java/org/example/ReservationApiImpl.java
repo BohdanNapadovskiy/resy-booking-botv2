@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 
 public class ReservationApiImpl implements ReservationApi {
 
-    private ResyClientConfig config;
+    private ClientConfig config;
 
-    public ReservationApiImpl(ResyClientConfig config) {
+    public ReservationApiImpl(ClientConfig config) {
         this.config = config;
     }
 
@@ -34,9 +34,9 @@ public class ReservationApiImpl implements ReservationApi {
     }
 
     @Override
-    public CompletableFuture<String> getReservationDetails(ReservationDetails details, String configId) {
+    public CompletableFuture<String> getReservationDetails(ReservationDetails details) {
         Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("config_id", configId);
+        queryParams.put("config_id", String.valueOf(details.getVenuId()));
         queryParams.put("day", details.getDate());
         queryParams.put("party_size", String.valueOf(details.getPartySize()));
         return sendGetRequest("api.resy.com/3/details", queryParams);

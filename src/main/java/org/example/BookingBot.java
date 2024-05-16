@@ -1,9 +1,12 @@
 package org.example;
 
 
+import lombok.SneakyThrows;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -13,9 +16,11 @@ public class BookingBot {
     private static final Logger logger = Logger.getLogger(BookingBot.class.getName());
 
     public static void main(String[] args) {
+        ClientConfig _config = new ClientConfig().createConfig();
 
-        int hour = 21; // For example, snipeTime.hours
-        int minute = 0; // For example, snipeTime.minutes
+
+        int hour = _config.getSnipeTimeHours();
+        int minute = _config.getSnipeTimeMinutes();
 
         LocalDateTime dateTimeNow = LocalDateTime.now();
         LocalDateTime todaysSnipeTime = dateTimeNow
@@ -34,15 +39,18 @@ public class BookingBot {
         logger.info("Next snipe time: " + nextSnipeTime);
         logger.info("Sleeping for " + hoursRemaining + " hours, " + minutesRemaining + " minutes, and " + secondsRemaining + " seconds");
 
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.schedule(() -> {
-            runResyBookingWorkflow();
-            logger.info("Shutting down Resy Booking Bot");
-            System.exit(0);
-        }, millisUntilNextSnipe, TimeUnit.MILLISECONDS);
+//        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+//        scheduler.schedule(() -> {
+            runResyBookingWorkflow(_config);
+//            logger.info("Shutting down Resy Booking Bot");
+//            System.exit(0);
+//        }, millisUntilNextSnipe, TimeUnit.MILLISECONDS);
     }
 
-    private static void runResyBookingWorkflow() {
+    @SneakyThrows
+    private static void runResyBookingWorkflow(ClientConfig _config) {
+        new ReservationClientImpl(new ReservationApiImpl(_config)).findReservations(Collections.singletonList(new ReservationDetails()));
 
     }
+
 }

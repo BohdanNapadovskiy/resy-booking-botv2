@@ -14,30 +14,31 @@ public class ResyApi {
    private static final Logger logger = Logger.getLogger(BookingBot.class.getName());
    private ReservationApi client;
 
-    public void createReservation(List<ReservationDetails> reservationDetailsList) {
-        List<CompletableFuture<String>> futures = reservationDetailsList.stream()
-                .map(number -> CompletableFuture.supplyAsync(() -> processNumber(number))
-                        .thenAcceptAsync(result -> System.out.println("Processed number: " + number + ", Square: " + result)))
-                .collect(Collectors.toList());
-    }
+//    public void createReservation(List<ReservationDetails> reservationDetailsList) {
+//        List<CompletableFuture<String>> futures = reservationDetailsList.stream()
+//                .map(number -> CompletableFuture.supplyAsync(() -> processNumber(number))
+//                        .thenAcceptAsync(result -> System.out.println("Processed number: " + number + ", Square: " + result)))
+//                .collect(Collectors.toList());
+//    }
 
     private Optional<String> snipeReservation(long millisToRetry, long dateTimeStart) {
         logger.info("Taking the shot...");
         logger.info("(҂‾ ▵‾)︻デ═一 (˚▽˚’!)/");
         logger.info("Attempting to snipe reservation for multiple party sizes");
 
-        Optional<String> result = Optional.empty();
-        if (!result.isPresent()) {
-            Optional<String> maybeConfigId = client.findReservations(
-                        resDetails.getDate(),
-                        partySize,
-                        resDetails.getPartySizes(),
-                        resDetails.getVenueId(),
-                        resDetails.getResTimeTypes()
-                );
-          }
+//        Optional<String> result = Optional.empty();
+//        if (!result.isPresent()) {
+//            Optional<String> maybeConfigId = client.findReservations(
+//                        resDetails.getDate(),
+//                        partySize,
+//                        resDetails.getPartySizes(),
+//                        resDetails.getVenueId(),
+//                        resDetails.getResTimeTypes()
+//                );
+//          }
 
-        return result;
+//        return result;
+      return null;
     }
 
 
