@@ -1,5 +1,6 @@
 package org.example;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -13,8 +14,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import org.example.response.Results;
 
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -35,9 +38,10 @@ public class ReservationClientImpl {
     reservation.stream().forEach(details-> {
       String response = null;
       try {
-        response = api.getReservationDetails(details).get(10, TimeUnit.SECONDS);
+        response = api.getReservations(details).get(5, TimeUnit.SECONDS);
         logger.info("URL Response: " + response);
-        Map<String, Map<String, String>> reservationMap = parseReservationMap(response);
+
+        Results results =  parseReservationMap(response);
         int a = 1;
       }
       catch (InterruptedException e) {
@@ -134,18 +138,19 @@ public class ReservationClientImpl {
 //        }
 //    }
 
-  private Map<String, Map<String, String>> parseReservationMap(String jsonResponse) {
-    Map<String, Map<String, String>> reservationMap = new HashMap<>();
-    JsonElement slots = JsonParser.parseString(jsonResponse).getAsJsonObject().getAsJsonArray("results").get(0)
-        .getAsJsonObject().getAsJsonArray("venues").get(0).getAsJsonObject().getAsJsonArray("slots");
-    for (JsonElement slot : slots.getAsJsonArray()) {
-      String time = slot.getAsJsonObject().get("date").getAsJsonObject().get("start").getAsString().substring(11, 16);
-      String type = slot.getAsJsonObject().get("config").getAsJsonObject().get("type").getAsString().toLowerCase();
-      String token = slot.getAsJsonObject().get("config").getAsJsonObject().get("token").getAsString();
-      reservationMap.computeIfAbsent(time, k -> new HashMap<>()).put(type, token);
+  private Results  parseReservationMap(String jsonResponse) {
+    ObjectMapper mapper = new ObjectMapper();
+    Results results= new Results();
+    try {
+      results = mapper.readValue(jsonResponse, Results.class);
+      System.out.println(results.getVenues().get(0).getSlots().get(0).getConfig().getType());
+      return results;
+    } catch (IOException e) {
+      logger.info("Missed the shot!");
+      return null;
+//      logger.info("'┻━┻ ︵ \(°□°)/ ︵ ┻━┻'"")
+//      logger.info(noAvailableResMsg)
     }
-
-    return reservationMap;
   }
 
 //    private Optional<String> findReservationTime (){
