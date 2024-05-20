@@ -12,11 +12,11 @@ import java.util.concurrent.TimeoutException;
 
 public interface ReservationApi {
 
-    CloseableHttpResponse  getReservations(ReservationDetails details, String partySize) throws ExecutionException, InterruptedException, TimeoutException;
+    CloseableHttpResponse  getReservations(ReservationDetails details, String partySize);
 
-    CloseableHttpResponse getReservationDetails(List<Slot> slot) throws ExecutionException, InterruptedException, TimeoutException;
+    List<DetailedResponse> getReservationDetails(List<Slot> slot);
 
-    CloseableHttpResponse bookReservation(DetailedResponse detailedResponse) throws ExecutionException, InterruptedException, TimeoutException;
+    CloseableHttpResponse bookReservation(DetailedResponse detailedResponse);
 
 
 }
