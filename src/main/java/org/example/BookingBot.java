@@ -41,15 +41,15 @@ public class BookingBot {
 
 //        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 //        scheduler.schedule(() -> {
-            runResyBookingWorkflow(_config);
+            runResyBookingWorkflow(_config, details);
 //            logger.info("Shutting down Resy Booking Bot");
 //            System.exit(0);
 //        }, millisUntilNextSnipe, TimeUnit.MILLISECONDS);
     }
 
-    @SneakyThrows
-    private static void runResyBookingWorkflow(ClientConfig _config) {
-        new ReservationClientImpl(new ReservationApiImpl(_config)).findReservations(Collections.singletonList(new ReservationDetails()));
+
+    private static void runResyBookingWorkflow(ClientConfig _config, ReservationDetails details) {
+        new ReservationClientImpl(_config).findReservations(details);
 
     }
 

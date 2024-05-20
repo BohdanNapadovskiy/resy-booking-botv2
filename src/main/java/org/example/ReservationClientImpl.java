@@ -15,8 +15,12 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ext.OptionalHandlerFactory;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import lombok.SneakyThrows;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.example.response.Results;
 
 import java.util.Optional;
@@ -25,150 +29,54 @@ import java.util.stream.Collectors;
 
 public class ReservationClientImpl {
 
-  private static final Logger logger = Logger.getLogger(ReservationClientImpl.class.getName());
   private ReservationApi api;
+  private ClientConfig config;
   private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+  private static final Logger logger = Logger.getLogger(ReservationClientImpl.class.getName());
 
-  public ReservationClientImpl(ReservationApi api) {
-    this.api = api;
-
+  public ReservationClientImpl(ClientConfig config) {
+    this.config = config;
+    this.api = new ReservationApiImpl(config);
   }
 
-  public void findReservations(List<ReservationDetails> reservation) {
-    reservation.stream().forEach(details-> {
-      String response = null;
-      try {
-        response = api.getReservations(details).get(5, TimeUnit.SECONDS);
-        logger.info("URL Response: " + response);
-
-        Results results =  parseReservationMap(response);
-        int a = 1;
-      }
-      catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-      catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      }
-      catch (TimeoutException e) {
-        throw new RuntimeException(e);
-      }
-
-    });
-//        .map(details -> CompletableFuture.supplyAsync(
-//            () -> {
-//              String response = "";
-//              try {
-//                response = api.getReservationDetails(details).get(2, TimeUnit.SECONDS);
-//                logger.info("URL Response: " + response);
-//                Map<String, Map<String, String>> reservationMap = parseReservationMap(response);
-//                if (!reservationMap.isEmpty()) {
-//                  int a = 1;
-////              findReservationTime(reservationMap);
-//                }
-//                else {
-//                  logger.warning("No available reservations");
-//                  return Optional.empty();
-//                }
-//              }
-//              catch (InterruptedException | ExecutionException | TimeoutException e) {
-//                throw new RuntimeException(e);
-//              }
-//              return response;
-//            },
-//            executorService
-//        ));
+  @SneakyThrows
+  public void findReservations(ReservationDetails details, List<Integer> partySizes) {
+  details.getDates()
+          .forEach(partySize-> {
+            executorService.submit(()-> {
+              CloseableHttpResponse response = api.getReservations(details, partySize);
+              handleResponse(response)
+                      .map(r-> {
+                        r.getVenues().stream()
+                                .forEach(v-> {
+                                  DetailedResponse detailedResponse = api.getReservationDetails(details, v)
+                                  api.bookReservation(detailedResponse)
+                                });
+                      })
+                      .orElseThrow()             ;
+            });
+          });
   }
 
-//  public Optional<BookingDetails> getReservationDetails(String configId, String date, int partySize) {
-//    try {
-//      String response = api.getReservationDetails(configId, date, partySize).get(5, TimeUnit.SECONDS);
-//      logger.info("URL Response: " + response);
-//
-//      JsonElement resDetails = JsonParser.parseString(response);
-//      String paymentMethodId = resDetails.getAsJsonObject().get("user").getAsJsonObject().get("payment_methods")
-//          .getAsJsonArray().get(0).getAsJsonObject().get("id").getAsString();
-//      String bookToken = resDetails.getAsJsonObject().get("book_token").getAsJsonObject().get("value").getAsString();
-//
-//      logger.info("Payment Method Id: " + paymentMethodId);
-//      logger.info("Book Token: " + bookToken);
-//
-//      return Optional.of(new BookingDetails(Integer.parseInt(paymentMethodId), bookToken));
-//    }
-//    catch (InterruptedException | ExecutionException | TimeoutException e) {
-//      logger.severe("Error retrieving reservation details: " + e.getMessage());
-//      return Optional.empty();
-//    }
-//  }
 
-//  public Optional<String> bookReservation(int paymentMethodId, String bookToken) {
-//    try {
-//      String response = api.postReservation(paymentMethodId, bookToken).get(10, TimeUnit.SECONDS);
-//      logger.info("URL Response: " + response);
-//
-//      String resyToken = JsonParser.parseString(response).getAsJsonObject().get("resy_token").getAsString();
-//
-//      logger.info("Successfully sniped reservation");
-//      logger.info("Resy token is " + resyToken);
-//
-//      return Optional.of(resyToken);
-//    }
-//    catch (InterruptedException | ExecutionException | TimeoutException e) {
-//      logger.severe("Error booking reservation: " + e.getMessage());
-//      return Optional.empty();
-//    }
-//  }
 
-//  private Optional<String> retryFindReservations(ReservationDetails reservation) {
-//        try {
-//            String response = api.getReservations(date, partySize, venueId).get(5, TimeUnit.SECONDS);
-//            Map<String, Map<String, String>> reservationMap = parseReservationMap(response);
-//
-//            if (!reservationMap.isEmpty()) {
-//                return findReservationTime(reservationMap, resTimeTypes);
-//            } else if (System.currentTimeMillis() - startTime < millisToRetry) {
-//                return retryFindReservations(date, partySize, venueId, resTimeTypes, millisToRetry, startTime);
-//            } else {
-//                logger.warning("No available reservations");
-//                return Optional.empty();
-//            }
-//        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-//            logger.severe("Error finding reservations: " + e.getMessage());
-//            return Optional.empty();
-//        }
-//    }
-
-  private Results  parseReservationMap(String jsonResponse) {
-    ObjectMapper mapper = new ObjectMapper();
-    Results results= new Results();
-    try {
-      results = mapper.readValue(jsonResponse, Results.class);
-      System.out.println(results.getVenues().get(0).getSlots().get(0).getConfig().getType());
-      return results;
-    } catch (IOException e) {
+  private Optional<Results> handleResponse(CloseableHttpResponse response) {
+    Results results = null;
+    if (response.getStatusLine().getStatusCode() == 200) {
+      ObjectMapper objectMapper = new ObjectMapper();
+        String jsonString = null;
+        try {
+            jsonString = EntityUtils.toString(response.getEntity());
+           results=  objectMapper.readValue(jsonString, Results.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    } else {
       logger.info("Missed the shot!");
-      return null;
-//      logger.info("'┻━┻ ︵ \(°□°)/ ︵ ┻━┻'"")
-//      logger.info(noAvailableResMsg)
+      logger.info("┻━┻ ︵ /(°□°)/ ︵ ┻━┻'");
+//      logger.info(noAvailableResMsg);
     }
+    return Optional.of(results) ;
   }
-
-//    private Optional<String> findReservationTime (){
-//      for (Map.Entry<String, Map<String, String>> entry : resTimeTypes.entrySet()) {
-//        Map<String, String> availableTypes = reservationMap.get(entry.getKey());
-//        if (availableTypes != null) {
-//          for (Map.Entry<String, String> typeEntry : entry.getValue().entrySet()) {
-//            String configId = availableTypes.get(typeEntry.getKey());
-//            if (configId != null) {
-//              logger.info("Config Id: " + configId);
-//              return Optional.of(configId);
-//            }
-//          }
-//        }
-//      }
-//
-//      logger.warning("Could not find a reservation for the given times");
-//      return Optional.empty();
-//    }
 
 }

@@ -2,7 +2,7 @@ package org.example.response;
 
 public class Slot {
     private Config config;
-    private Date date;
+    private String date;
 
     // Getters and Setters
     public Config getConfig() {
@@ -13,11 +13,11 @@ public class Slot {
         this.config = config;
     }
 
-    public Date getDate() {
+    public String getDate() {
         return date;
     }
 
-    public void setDate(Date date) {
+    public void setDate(String date) {
         this.date = date;
     }
 

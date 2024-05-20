@@ -1,14 +1,21 @@
 package org.example;
 
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.example.response.Results;
+import org.example.response.Slot;
+import org.example.response.Venue;
+
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 public interface ReservationApi {
 
-    CompletableFuture<String> getReservations(ReservationDetails details);
+    CloseableHttpResponse  getReservations(ReservationDetails details, String partySize) throws ExecutionException, InterruptedException, TimeoutException;
 
-    CompletableFuture<String> getReservationDetails(ReservationDetails details);
+    CloseableHttpResponse getReservationDetails(Slot slot) throws ExecutionException, InterruptedException, TimeoutException;
 
-    CompletableFuture<String> bookReservation(String bookToken, int paymentMethodId);
+    CloseableHttpResponse bookReservation(String bookToken, int paymentMethodId);
 
 
 }

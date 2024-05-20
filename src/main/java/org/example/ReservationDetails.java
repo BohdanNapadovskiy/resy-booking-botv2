@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Setter
 @Getter
 @AllArgsConstructor
@@ -12,10 +15,11 @@ import lombok.Setter;
 public class ReservationDetails {
 
     private String time = "18:30:00";
-    private int partySize = 4;
-    private String date = "2024-05-17";
-    private String tableType;
+    private List<Integer> partySizes;
     private int venuId = 65452;
+    private String date;
+    List<String> dates = new ArrayList<>();
+    List<Integer> tablesType = new ArrayList<>();
 
 
 }

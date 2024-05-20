@@ -6,11 +6,19 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.example.response.Config;
+import org.example.response.Results;
+import org.example.response.Slot;
+import org.example.response.Venue;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class ReservationApiImpl implements ReservationApi {
@@ -23,51 +31,52 @@ public class ReservationApiImpl implements ReservationApi {
 
 
     @Override
-    public CompletableFuture<String> getReservations(ReservationDetails reservation) {
+    public CloseableHttpResponse getReservations(ReservationDetails reservation, String partySize)
+            throws ExecutionException, InterruptedException, TimeoutException {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put("lat", "0");
         queryParams.put("long", "0");
         queryParams.put("day", reservation.getDate());
-        queryParams.put("party_size", String.valueOf(reservation.getPartySize()));
+        queryParams.put("party_size", partySize);
         queryParams.put("venue_id", String.valueOf(reservation.getVenuId()));
-        return sendGetRequest("api.resy.com/4/find", queryParams);
+        return sendGetRequest("api.resy.com/4/find", queryParams).get(5, TimeUnit.SECONDS);
     }
 
     @Override
-    public CompletableFuture<String> getReservationDetails(ReservationDetails details) {
+    public CloseableHttpResponse getReservationDetails( Slot slot)
+            throws ExecutionException, InterruptedException, TimeoutException {
         Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("config_id", String.valueOf(details.getVenuId()));
-        queryParams.put("day", details.getDate());
-        queryParams.put("party_size", String.valueOf(details.getPartySize()));
-        return sendGetRequest("api.resy.com/3/details", queryParams);
+        queryParams.put("config_id", slot.getConfig().getToken());
+        queryParams.put("day", slot.getDate());
+        queryParams.put("party_size", slot.getConfig().getType());
+        return sendGetRequest("api.resy.com/3/details", queryParams).get(5, TimeUnit.SECONDS);
     }
 
     @Override
-    public CompletableFuture<String> bookReservation(String bookToken, int paymentMethodId) {
+    public CloseableHttpResponse bookReservation(DetailedResponse response)
+            throws ExecutionException, InterruptedException, TimeoutException {
         Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("book_token", bookToken);
+        queryParams.put("book_token", response.getBookToken().getValue());
         queryParams.put("struct_payment_method", String.format("{\"id\":%d}", paymentMethodId));
-        return sendPostRequest("api.resy.com/3/book", queryParams);
+        return sendPostRequest("api.resy.com/3/book", queryParams).get(5, TimeUnit.SECONDS);
     }
 
 
-    private CompletableFuture<String> sendGetRequest(String baseUrl, Map<String, String> queryParams) {
+    private CompletableFuture<CloseableHttpResponse> sendGetRequest(String baseUrl, Map<String, String> queryParams) {
         String url = "https://" + baseUrl + "?" + stringifyQueryParams(queryParams);
         return CompletableFuture.supplyAsync(() -> {
             try (CloseableHttpClient client = HttpClients.createDefault()) {
                 HttpGet request = new HttpGet(url);
                 request.setHeader("Authorization", String.format("ResyAPI api_key=\"%s\"", config.getApiKey()));
                 request.setHeader("x-resy-auth-token", config.getAuth_token());
-                try (CloseableHttpResponse response = client.execute(request)) {
-                    return EntityUtils.toString(response.getEntity());
-                }
+                return client.execute(request);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
     }
 
-    private CompletableFuture<String> sendPostRequest(String baseUrl, Map<String, String> queryParams) {
+    private CompletableFuture<CloseableHttpResponse> sendPostRequest(String baseUrl, Map<String, String> queryParams) {
         String url = "https://" + baseUrl;
         String postParams = stringifyQueryParams(queryParams);
         return CompletableFuture.supplyAsync(() -> {
@@ -79,9 +88,7 @@ public class ReservationApiImpl implements ReservationApi {
                 request.setHeader("Authorization", String.format("ResyAPI api_key=\"%s\"", config.getApiKey()));
                 request.setHeader("x-resy-auth-token", config.getAuth_token());
                 request.setEntity(new org.apache.http.entity.StringEntity(postParams));
-                try (CloseableHttpResponse response = client.execute(request)) {
-                    return EntityUtils.toString(response.getEntity());
-                }
+                return client.execute(request);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
