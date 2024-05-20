@@ -1,30 +1,18 @@
 package org.example;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.logging.Logger;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.TimeUnit;
-
+import org.example.response.detail.DetailedResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ext.OptionalHandlerFactory;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import lombok.SneakyThrows;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.example.response.Results;
 
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 
 public class ReservationClientImpl {
@@ -49,8 +37,8 @@ public class ReservationClientImpl {
                       .map(r-> {
                         r.getVenues().stream()
                                 .forEach(v-> {
-                                  DetailedResponse detailedResponse = api.getReservationDetails(details, v)
-                                  api.bookReservation(detailedResponse)
+                                  DetailedResponse detailedResponse = api.getReservationDetails(v.getSlots())
+                                  api.bookReservation(detailedResponse);
                                 });
                       })
                       .orElseThrow()             ;
