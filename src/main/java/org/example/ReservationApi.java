@@ -1,22 +1,16 @@
 package org.example;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.example.response.Results;
-import org.example.response.Slot;
-import org.example.response.Venue;
-import org.example.response.detail.DetailedResponse;
-import java.util.List;
-
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
+import org.example.request.ReservationRequest;
+import org.example.response.detail.ReservationResponse;
+import org.example.response.find.FindResult;
 
 public interface ReservationApi {
 
-    CloseableHttpResponse  getReservations(ReservationDetails details, String partySize);
+    FindResult findReservation();
 
-    List<DetailedResponse> getReservationDetails(List<Slot> slot);
+    ReservationResponse getDetailedReservation(ReservationRequest request);
 
-    CloseableHttpResponse bookReservation(DetailedResponse detailedResponse);
+    void bookReservation(ReservationResponse reservation);
 
 
 }

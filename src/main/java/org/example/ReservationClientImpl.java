@@ -1,17 +1,25 @@
 package org.example;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import org.example.response.Venue;
+import org.example.request.ReservationRequest;
+import org.example.response.detail.ReservationResponse;
+import org.example.response.find.FindResult;
+import org.example.response.find.Venue;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.util.EntityUtils;
-import org.example.response.Results;
+import org.example.response.find.Results;
 
 import java.util.Optional;
 
@@ -27,49 +35,41 @@ public class ReservationClientImpl {
   }
 
   @SneakyThrows
-  public void findReservations(ReservationDetails details, List<Integer> partySizes) {
-    details.getDates()
-        .forEach(partySize -> {
-          executorService.submit(() -> {
-            CloseableHttpResponse response = api.getReservations(details, partySize);
-            handleResponse(response)
-                .ifPresent(this::getDetailingReservation);
-//                .orElseThrow();
-          });
-        });
-  }
-
-  private void getDetailingReservation(Results results) {
-    results.getVenues()
-        .forEach(this::bookReservation);
-  }
-
-  private void bookReservation(Venue v) {
-    api.getReservationDetails(v.getSlots())
-        .forEach(d-> api.bookReservation(d));
-  }
-
-
-
-  private Optional<Results> handleResponse(CloseableHttpResponse response) {
-    Results results = null;
-    if (response.getStatusLine().getStatusCode() == 200) {
-      ObjectMapper objectMapper = new ObjectMapper();
-      String jsonString = null;
+  public void bookReservation() {
+    Results result = api.findReservation().getResults();
+    result.getVenues().forEach(venue -> {
       try {
-        jsonString = EntityUtils.toString(response.getEntity());
-        results = objectMapper.readValue(jsonString, Results.class);
+        getDetailedResponse(venue);
+//        bookReservation();
       }
-      catch (IOException e) {
+      catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
+    });
+  }
+
+  private void getDetailedResponse(Venue venue) throws InterruptedException, ExecutionException {
+    ExecutorService executor = Executors.newSingleThreadExecutor();
+    venue.getSlots().stream()
+        .map(slot -> (Callable<ReservationResponse>) () -> {
+          TimeUnit.SECONDS.sleep(10);
+          ReservationRequest request = new ReservationRequest(slot, 6);
+          return api.getDetailedReservation(request);
+        })
+        .forEach(this::bookSpecificReservation);
+    executor.shutdown();
+
+  }
+
+  private void bookSpecificReservation(Callable<ReservationResponse> response) {
+    try {
+      TimeUnit.SECONDS.sleep(10);
+      ReservationResponse res = response.call();
+      api.bookReservation(res);
     }
-    else {
-      logger.info("Missed the shot!");
-      logger.info("┻━┻ ︵ /(°□°)/ ︵ ┻━┻'");
-//      logger.info(noAvailableResMsg);
+    catch (Exception e) {
+      throw new RuntimeException(e);
     }
-    return Optional.of(results);
   }
 
 }

@@ -20,6 +20,8 @@ public class ClientConfig {
     private String auth_token;
     private Integer snipeTimeHours;
     private Integer snipeTimeMinutes;
+    private String date;
+
 
     public ClientConfig createConfig() {
         Properties properties = new Properties();

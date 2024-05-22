@@ -1,14 +1,8 @@
 package org.example;
 
 
-import lombok.SneakyThrows;
-
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 public class BookingBot {
@@ -38,6 +32,7 @@ public class BookingBot {
 
         logger.info("Next snipe time: " + nextSnipeTime);
         logger.info("Sleeping for " + hoursRemaining + " hours, " + minutesRemaining + " minutes, and " + secondsRemaining + " seconds");
+        ReservationDetails details = new ReservationDetails();
 
 //        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 //        scheduler.schedule(() -> {
@@ -49,7 +44,7 @@ public class BookingBot {
 
 
     private static void runResyBookingWorkflow(ClientConfig _config, ReservationDetails details) {
-        new ReservationClientImpl(_config).findReservations(details);
+        new ReservationClientImpl(_config).bookReservation();
 
     }
 

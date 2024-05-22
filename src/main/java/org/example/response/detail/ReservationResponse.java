@@ -5,16 +5,16 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.response.find.Config;
+import org.example.response.find.Venue;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentMethod {
-
-  private String payment;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ReservationResponse {
+  private BookToken book_token;
 
 
 }

@@ -1,4 +1,4 @@
-package org.example.response.detail;
+package org.example.response.find;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -11,10 +11,12 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentMethod {
+public class FindResult {
 
-  private String payment;
+  private String bookmark = "";
 
+  private Results results = new Results();
 
+  private String guest_token = "";
 
 }

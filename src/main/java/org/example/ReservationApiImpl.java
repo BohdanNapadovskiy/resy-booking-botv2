@@ -1,31 +1,28 @@
 package org.example;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.example.response.Slot;
-import org.example.response.detail.BookToken;
-import org.example.response.detail.DetailedResponse;
+import org.example.request.ReservationRequest;
+import org.example.response.detail.ReservationResponse;
+import org.example.response.find.FindResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
+import java.net.URI;
 
 public class ReservationApiImpl implements ReservationApi {
 
   private ClientConfig config;
+  private final Logger logger = LoggerFactory.getLogger(ReservationApiImpl.class);
 
   public ReservationApiImpl(ClientConfig config) {
     this.config = config;
@@ -33,128 +30,85 @@ public class ReservationApiImpl implements ReservationApi {
 
 
   @Override
-  public CloseableHttpResponse getReservations(ReservationDetails reservation, String partySize)   {
-    Map<String, String> queryParams = new HashMap<>();
-    queryParams.put("lat", "0");
-    queryParams.put("long", "0");
-    queryParams.put("day", reservation.getDate());
-    queryParams.put("party_size", partySize);
-    queryParams.put("venue_id", String.valueOf(reservation.getVenuId()));
-    try {
-      return sendGetRequest("api.resy.com/4/find", queryParams).get(5, TimeUnit.SECONDS);
+  public FindResult findReservation() {
+    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+      HttpGet httpGet = new HttpGet("https://api.resy.com/4/find");
+      URI uri = new URIBuilder(httpGet.getURI())
+          .addParameter("lat", "0")
+          .addParameter("long", "0")
+          .addParameter("day", "2024-05-29")
+          .addParameter("party_size", "2")
+          .addParameter("venue_id", "60834")
+          .build();
+      httpGet.setURI(uri);
+      httpGet.setHeader("Host", "api.resy.com");
+      httpGet.setHeader("Accept", "application/json");
+      httpGet.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
+      httpGet.setHeader(
+          "User-Agent",
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+      );
+      CloseableHttpResponse response = httpClient.execute(httpGet);
+      String jsonString = EntityUtils.toString(response.getEntity());
+      logger.info("Getting result from RESY API: {}", jsonString);
+      ObjectMapper mapper = new ObjectMapper();
+      return mapper.readValue(jsonString, FindResult.class);
     }
-    catch (InterruptedException | ExecutionException | TimeoutException e) {
-      throw new RuntimeException(e);
+    catch (Exception e) {
+      logger.info("Cannot find any available reservations !!!");
+      return new FindResult();
     }
   }
 
   @Override
-  public  List<DetailedResponse> getReservationDetails(List<Slot> slots)  {
-    List<DetailedResponse> responses = null;
-    slots.stream().forEach(slot -> {
-      Map<String, String> queryParams = new HashMap<>();
-      queryParams.put("config_id", slot.getConfig().getToken());
-      queryParams.put("day", slot.getDate());
-      queryParams.put("party_size", slot.getConfig().getType());
-      try {
-        CloseableHttpResponse response = sendGetRequest("api.resy.com/3/details", queryParams)
-            .get(5, TimeUnit.SECONDS);
-        responses.add(handleDetailedResponse(response));
-        Thread.sleep(2000);
-      } catch (InterruptedException | ExecutionException | TimeoutException e) {
-        throw new RuntimeException(e);
-      }
-    });
-    return responses;
+  public ReservationResponse getDetailedReservation(ReservationRequest request) {
+    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+      HttpPost httpPost = new HttpPost("https://api.resy.com/3/details");
+      URI uri = new URIBuilder(httpPost.getURI()).build();
+      httpPost.setURI(uri);
+      httpPost.setHeader("Host", "api.resy.com");
+      httpPost.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
+      httpPost.setHeader("Cache-Control", "no-cache");
 
-  }
-
-  @Override
-  public CloseableHttpResponse bookReservation(DetailedResponse detail) {
-    BookToken bookToken = detail.getBookToken();
-    detail.getUser().getPaymentMethods()
-        .forEach(payment-> {
-          Map<String, String> queryParams = new HashMap<>();
-          queryParams.put("book_token", bookToken.getValue());
-          queryParams.put("struct_payment_method", String.format("{\"id\":%d}", payment));
-          try {
-            sendPostRequest("api.resy.com/3/book", queryParams).get(5, TimeUnit.SECONDS);
-          }
-          catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new RuntimeException(e);
-          }
-        });
-  }
-
-
-  private CompletableFuture<CloseableHttpResponse> sendGetRequest(String baseUrl, Map<String, String> queryParams) {
-    String url = "https://" + baseUrl + "?" + stringifyQueryParams(queryParams);
-    return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createDefault()) {
-        HttpGet request = new HttpGet(url);
-        request.setHeader("Authorization", String.format("ResyAPI api_key=\"%s\"", config.getApiKey()));
-        request.setHeader("x-resy-auth-token", config.getAuth_token());
-        return client.execute(request);
-      }
-      catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    });
-  }
-
-  private CompletableFuture<CloseableHttpResponse> sendPostRequest(String baseUrl, Map<String, String> queryParams) {
-    String url = "https://" + baseUrl;
-    String postParams = stringifyQueryParams(queryParams);
-    return CompletableFuture.supplyAsync(() -> {
-      try (CloseableHttpClient client = HttpClients.createDefault()) {
-        HttpPost request = new HttpPost(url);
-        request.setHeader("Content-Type", "application/x-www-form-urlencoded");
-        request.setHeader("Origin", "https://widgets.resy.com");
-        request.setHeader("Referer", "https://widgets.resy.com");
-        request.setHeader("Authorization", String.format("ResyAPI api_key=\"%s\"", config.getApiKey()));
-        request.setHeader("x-resy-auth-token", config.getAuth_token());
-        request.setEntity(new org.apache.http.entity.StringEntity(postParams));
-        return client.execute(request);
-      }
-      catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    });
-  }
-
-  private DetailedResponse handleDetailedResponse(CloseableHttpResponse response) {
-    DetailedResponse results = null;
-    if (response.getStatusLine().getStatusCode() == 200) {
       ObjectMapper objectMapper = new ObjectMapper();
-      String jsonString = null;
-      try {
-        jsonString = EntityUtils.toString(response.getEntity());
-        results = objectMapper.readValue(jsonString, DetailedResponse.class);
-      }
-      catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      String json = objectMapper.writeValueAsString(request);
+      StringEntity entity = new StringEntity(json);
+      httpPost.setEntity(entity);
+      CloseableHttpResponse response = httpClient.execute(httpPost);
+      String jsonString = EntityUtils.toString(response.getEntity());
+      logger.info("Getting detailed response from RESY API by request {}", jsonString);
+      ObjectMapper mapper = new ObjectMapper();
+      return mapper.readValue(jsonString, ReservationResponse.class);
     }
-    else {
-//      logger.info("Missed the shot!");
-//      logger.info("┻━┻ ︵ /(°□°)/ ︵ ┻━┻'");
-//      logger.info(noAvailableResMsg);
+    catch (Exception e) {
+      logger.info("Cannot find any available reservations for config_Id {}", request.getConfig_id());
+      return new ReservationResponse();
     }
-
-    return results;
   }
 
+  @Override
+  public void bookReservation(ReservationResponse d) {
+    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+      HttpPost httpPost = new HttpPost("https://api.resy.com/3/book");
+      URI uri = new URIBuilder(httpPost.getURI()).build();
+      httpPost.setURI(uri);
+      httpPost.setHeader("Host", "api.resy.com");
+      httpPost.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
+      httpPost.setHeader("Cache-Control", "no-cache");
 
-  private String stringifyQueryParams(Map<String, String> queryParams) {
-    return queryParams.entrySet().stream()
-        .map(entry -> {
-          try {
-            return entry.getKey() + "=" + URLEncoder.encode(entry.getValue(), "UTF-8");
-          }
-          catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("Encoding not supported", e);
-          }
-        })
-        .collect(Collectors.joining("&"));
+      ObjectMapper objectMapper = new ObjectMapper();
+//      String json = objectMapper.writeValueAsString(request);
+//      StringEntity entity = new StringEntity(json);
+//      httpPost.setEntity(entity);
+      CloseableHttpResponse response = httpClient.execute(httpPost);
+      String jsonString = EntityUtils.toString(response.getEntity());
+      logger.info("Getting detailed response from RESY API by request {}", jsonString);
+      ObjectMapper mapper = new ObjectMapper();
+    }
+    catch (Exception e) {
+//      logger.info("Cannot find any available reservations for config_Id {}", request.getConfig_id());
+    }
+
   }
+
 }

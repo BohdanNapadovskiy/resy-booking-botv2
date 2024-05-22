@@ -1,26 +1,21 @@
 package org.example.response.detail;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.List;
 
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class User {
 
-  private List<PaymentMethod> paymentMethods;
-
-  // Constructor
-  public User() {
-  }
-
-  public User(List<PaymentMethod> paymentMethods) {
-    this.paymentMethods = paymentMethods;
-  }
-
-  // Getter and Setter
-  public List<PaymentMethod> getPaymentMethods() {
-    return paymentMethods;
-  }
-
-  public void setPaymentMethods(List<PaymentMethod> paymentMethods) {
-    this.paymentMethods = paymentMethods;
-  }
+  private String payment_methods;
 
 }

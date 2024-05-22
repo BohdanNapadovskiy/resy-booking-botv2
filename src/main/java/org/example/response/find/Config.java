@@ -1,4 +1,4 @@
-package org.example.response.detail;
+package org.example.response.find;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -11,10 +11,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class PaymentMethod {
-
-  private String payment;
-
+public class Config {
+    private String type;
+    private String token;
 
 
 }

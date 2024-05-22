@@ -1,5 +1,14 @@
 package org.example.response.detail;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DetailedResponse {
 
   private User user;
@@ -13,21 +22,5 @@ public class DetailedResponse {
     this.bookToken = bookToken;
   }
 
-  // Getter and Setter
-  public User getUser() {
-    return user;
-  }
-
-  public void setUser(User user) {
-    this.user = user;
-  }
-
-  public BookToken getBookToken() {
-    return bookToken;
-  }
-
-  public void setBookToken(BookToken bookToken) {
-    this.bookToken = bookToken;
-  }
 
 }
