@@ -43,6 +43,7 @@ public class ReservationApiImpl implements ReservationApi {
       httpGet.setURI(uri);
       httpGet.setHeader("Host", "api.resy.com");
       httpGet.setHeader("Accept", "application/json");
+      httpGet.setHeader("Referer", "https://resy.com/");
       httpGet.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
       httpGet.setHeader(
           "User-Agent",
