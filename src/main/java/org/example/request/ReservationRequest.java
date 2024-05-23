@@ -16,11 +16,9 @@ public class ReservationRequest {
   private String day;
   private int party_size;
 
-  public ReservationRequest(Slot slot, int party_size) {
+  public ReservationRequest(Slot slot) {
     this.commit = 1;
-    this.day = slot.getDate().getStart();
     this.config_id = slot.getConfig().getToken();
-    this.party_size = party_size;
   }
 
 

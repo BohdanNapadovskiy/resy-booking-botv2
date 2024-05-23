@@ -1,4 +1,5 @@
 package org.example;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,28 +16,35 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ClientConfig {
 
-    private String dateOfReservation;
-    private String apiKey;
-    private String auth_token;
-    private Integer snipeTimeHours;
-    private Integer snipeTimeMinutes;
-    private String date;
+  private String dateOfReservation;
+  private String apiKey;
+  private String auth_token;
+  private String party_size;
+  private String venue_id;
+  private Integer snipeTimeHours;
+  private Integer snipeTimeMinutes;
+  private String[] timesTypes;
 
 
-    public ClientConfig createConfig() {
-        Properties properties = new Properties();
-        ClientConfig config = new ClientConfig();
-        ClassLoader loader = ClientConfig.class.getClassLoader();
-        try (InputStream input = loader.getResourceAsStream("application.properties")) {
-            properties.load(input);
-            config.setApiKey(properties.getProperty("resyKeys.api-key"));
-            config.setAuth_token(properties.getProperty("resyKeys.auth-token"));
-            config.setSnipeTimeHours(Integer.valueOf(properties.getProperty("snipeTime.hours")));
-            config.setSnipeTimeMinutes(Integer.valueOf(properties.getProperty("snipeTime.minutes")));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return config;
-
+  public ClientConfig createConfig() {
+    Properties properties = new Properties();
+    ClientConfig config = new ClientConfig();
+    ClassLoader loader = ClientConfig.class.getClassLoader();
+    try (InputStream input = loader.getResourceAsStream("application.properties")) {
+      properties.load(input);
+      config.setApiKey(properties.getProperty("resyKeys.api-key"));
+      config.setAuth_token(properties.getProperty("resyKeys.auth-token"));
+      config.setSnipeTimeHours(Integer.valueOf(properties.getProperty("snipeTime.hours")));
+      config.setSnipeTimeMinutes(Integer.valueOf(properties.getProperty("snipeTime.minutes")));
+      config.setDateOfReservation(properties.getProperty("resDetails.date"));
+      config.setVenue_id(properties.getProperty("resDetails.venue-id"));
+      config.setParty_size(properties.getProperty("resDetails.party-size"));
+      config.setTimesTypes(properties.getProperty("resDetails.res-time-types").split(","));
     }
+    catch (IOException e) {
+      e.printStackTrace();
+    }
+    return config;
+
+  }
 }
