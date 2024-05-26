@@ -40,7 +40,7 @@ public class ReservationClientImpl {
         .filter(this::existDateInProperties)
         .forEach(slot -> {
           try {
-            TimeUnit.SECONDS.sleep(10);
+            TimeUnit.SECONDS.sleep(5);
             ReservationRequest request = new ReservationRequest(slot);
             ReservationResponse response = api.getDetailedReservation(request);
             api.bookReservation(response);
