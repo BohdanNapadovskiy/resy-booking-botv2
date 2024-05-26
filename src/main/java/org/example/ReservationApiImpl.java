@@ -67,9 +67,10 @@ public class ReservationApiImpl implements ReservationApi {
       HttpPost httpPost = new HttpPost("https://api.resy.com/3/details");
       URI uri = new URIBuilder(httpPost.getURI()).build();
       httpPost.setURI(uri);
-      httpPost.setHeader("Accept", "*/*");
-      httpPost.setHeader("Content-Type", "application/json");
       httpPost.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
+      httpPost.setHeader("Content-Type", "application/json");
+      httpPost.setHeader("Accept-Encoding", "gzip, deflate, br, zstd");
+      httpPost.setHeader("Accept-Language", "en-US,en;q=0.9,ru;q=0.8,uk;q=0.7");
       httpPost.setEntity(createEntity(request));
       CloseableHttpResponse response = httpClient.execute(httpPost);
       String jsonString = EntityUtils.toString(response.getEntity());
@@ -125,9 +126,9 @@ public class ReservationApiImpl implements ReservationApi {
       return new URIBuilder(httpGet.getURI())
           .addParameter("lat", "0")
           .addParameter("long", "0")
-          .addParameter("day", "2024-05-29")
-          .addParameter("party_size", "6")
-          .addParameter("venue_id", "60834")
+          .addParameter("day", config.getDateOfReservation())
+          .addParameter("party_size", config.getParty_size())
+          .addParameter("venue_id", config.getVenue_id())
           .build();
     }
     catch (URISyntaxException e) {
