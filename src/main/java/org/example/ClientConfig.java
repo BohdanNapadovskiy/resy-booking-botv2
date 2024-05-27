@@ -24,6 +24,8 @@ public class ClientConfig {
   private Integer snipeTimeHours;
   private Integer snipeTimeMinutes;
   private String[] timesTypes;
+  private Integer repeatSnipeTime;
+  private Integer beforeSnipeTime;
 
 
   public ClientConfig createConfig() {
@@ -40,6 +42,8 @@ public class ClientConfig {
       config.setVenue_id(properties.getProperty("resDetails.venue-id"));
       config.setParty_size(properties.getProperty("resDetails.party-size"));
       config.setTimesTypes(properties.getProperty("resDetails.res-time-types").split(","));
+      config.setRepeatSnipeTime(Integer.valueOf(properties.getProperty("repeatSnipeTime.seconds")));
+      config.setBeforeSnipeTime(Integer.valueOf(properties.getProperty("beforeSnipeTime.seconds")));
     }
     catch (IOException e) {
       e.printStackTrace();

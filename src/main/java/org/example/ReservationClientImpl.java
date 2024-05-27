@@ -28,6 +28,7 @@ public class ReservationClientImpl {
 
   @SneakyThrows
   public void bookReservations() {
+    logger.info("Start scanning for free slots for reservation");
     Results result = api.findReservation().getResults();
     if (!result.getVenues().isEmpty())
       result.getVenues().forEach(this::bookSpecificReservation);
