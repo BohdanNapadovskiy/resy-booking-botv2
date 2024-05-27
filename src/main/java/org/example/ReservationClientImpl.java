@@ -36,6 +36,10 @@ public class ReservationClientImpl {
   }
 
   private void bookSpecificReservation(Venue venue) {
+    if(venue.getSlots().isEmpty())
+      logger.error("There are no available slots for date of reservation: {}", config.getDateOfReservation());
+    else
+      logger.info("There are available slots for date of reservation: {}", venue.getSlots().size());
     venue.getSlots().stream()
         .filter(this::existDateInProperties)
         .forEach(slot -> {

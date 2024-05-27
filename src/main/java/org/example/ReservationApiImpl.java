@@ -2,7 +2,16 @@ package org.example;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.SneakyThrows;
+import okhttp3.Call;
+import okhttp3.HttpUrl;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -35,53 +44,62 @@ public class ReservationApiImpl implements ReservationApi {
   @Override
   @SneakyThrows
   public FindResult findReservation() {
-    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      HttpGet httpGet = new HttpGet("https://api.resy.com/4/find");
-      httpGet.setURI(createGetURI(httpGet));
-      httpGet.setHeader("Host", "api.resy.com");
-      httpGet.setHeader("Accept", "application/json");
-      httpGet.setHeader("Referer", "https://resy.com/");
-      httpGet.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
-      httpGet.setHeader(
-          "User-Agent",
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-      );
-      CloseableHttpResponse response = httpClient.execute(httpGet);
-      if (response.getStatusLine().getStatusCode() == 200) {
-        String jsonString = EntityUtils.toString(response.getEntity());
-        logger.debug("Getting result from RESY API: {}", jsonString);
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(jsonString, FindResult.class);
-      }
-      else {
-        logger.error("Cannot find any available reservations !!!");
-        return new FindResult();
-      }
+    OkHttpClient client = new OkHttpClient();
+    HttpUrl.Builder urlBuilder = HttpUrl.parse("https://api.resy.com/4/find").newBuilder();
+    urlBuilder.addQueryParameter("lat", "0");
+    urlBuilder.addQueryParameter("long", "0");
+    urlBuilder.addQueryParameter("day", "2024-05-30");
+    urlBuilder.addQueryParameter("party_size", "6");
+    urlBuilder.addQueryParameter("venue_id", "60834");
+    Request getRequest = new Request.Builder()
+        .url(urlBuilder.build().toString())
+        .header("Host", "api.resy.com")
+        .header("Accept", "application/json")
+        .header("Referer", "https://resy.com/")
+        .header("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"")
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        )
+        .build();
+    Call call = client.newCall(getRequest);
+    Response response = call.execute();
+    String responseBody = response.body().string();
+    if (response.code() == 200) {
+      logger.info("Getting result from RESY API: {}", responseBody);
+      return new ObjectMapper().readValue(responseBody, FindResult.class);
+    }
+    else {
+      logger.error("Cannot find any available reservations !!!");
+      return new FindResult();
     }
   }
 
   @Override
   @SneakyThrows
   public ReservationResponse getDetailedReservation(ReservationRequest request) {
-    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      HttpPost httpPost = new HttpPost("https://api.resy.com/3/details");
-      URI uri = new URIBuilder(httpPost.getURI()).build();
-      httpPost.setURI(uri);
-      httpPost.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
-      httpPost.setHeader("Content-Type", "application/json");
-      httpPost.setHeader("Accept-Encoding", "gzip, deflate, br, zstd");
-      httpPost.setHeader("Accept-Language", "en-US,en;q=0.9,ru;q=0.8,uk;q=0.7");
-      httpPost.setEntity(createEntity(request));
-      CloseableHttpResponse response = httpClient.execute(httpPost);
-      String jsonString = EntityUtils.toString(response.getEntity());
-      if (response.getStatusLine().getStatusCode() == 200) {
-        logger.debug("Getting detailed response from RESY API by request {}", jsonString);
-        return new ObjectMapper().readValue(jsonString, ReservationResponse.class);
-      }
-      else {
-        logger.error("Error for getting a detailed response {}", jsonString);
-        return new ReservationResponse();
-      }
+    String json = createEntity(request);
+    RequestBody body = RequestBody.create(
+        MediaType.parse("application/json"), json);
+    OkHttpClient client = new OkHttpClient();
+    Request postRequest = new Request.Builder()
+        .url("https://api.resy.com/3/details")
+        .header("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"")
+        .header("Accept-Encoding", "gzip, deflate, br, zstd")
+        .header("Content-Type", "application/json")
+        .header("Accept-Language", "en-US,en;q=0.9,ru;q=0.8,uk;q=0.7")
+        .post(body)
+        .build();
+    Call call = client.newCall(postRequest);
+    Response response = call.execute();
+    String responseBody = response.body().string();
+    if (response.code() == 201) {
+      logger.info("Getting detailed response from RESY API by request {}", responseBody);
+      return new ObjectMapper().readValue(responseBody, ReservationResponse.class);
+    }
+    else {
+      logger.error("Error for getting a detailed response {}", responseBody);
+      return new ReservationResponse();
     }
   }
 
@@ -95,13 +113,18 @@ public class ReservationApiImpl implements ReservationApi {
       httpPost.setHeader("Host", "api.resy.com");
       httpPost.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
       httpPost.setHeader("Cache-Control", "no-cache");
+      httpPost.setHeader("Content-Type", "application/json");
+      httpPost.setHeader(
+          "User-Agent",
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+      );
       ObjectMapper objectMapper = new ObjectMapper();
       String json = objectMapper.writeValueAsString(reservation);
       httpPost.setEntity(new StringEntity(json));
       CloseableHttpResponse response = httpClient.execute(httpPost);
       String jsonString = EntityUtils.toString(response.getEntity());
       if (response.getStatusLine().getStatusCode() == 200) {
-        logger.debug("The reservation {} successfully booked", reservation.getBook_token());
+        logger.info("The reservation {} successfully booked", reservation.getBook_token());
       }
       else {
         logger.error("Error while booking the reservation {}", jsonString);
@@ -109,32 +132,15 @@ public class ReservationApiImpl implements ReservationApi {
     }
   }
 
-  private HttpEntity createEntity(ReservationRequest request) {
+  private String createEntity(ReservationRequest request) {
     ObjectMapper objectMapper = new ObjectMapper();
     String json;
     try {
-      json = objectMapper.writeValueAsString(request);
-      return new StringEntity(json);
+      return objectMapper.writeValueAsString(request);
     }
-    catch (JsonProcessingException | UnsupportedEncodingException e) {
+    catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
-
-  private URI createGetURI(HttpGet httpGet) {
-    try {
-      return new URIBuilder(httpGet.getURI())
-          .addParameter("lat", "0")
-          .addParameter("long", "0")
-          .addParameter("day", config.getDateOfReservation())
-          .addParameter("party_size", config.getParty_size())
-          .addParameter("venue_id", config.getVenue_id())
-          .build();
-    }
-    catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
 
 }

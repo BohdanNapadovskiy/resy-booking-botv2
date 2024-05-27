@@ -35,23 +35,26 @@ public class BookingBot {
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
         // Task to start 30 seconds before the snipe time
-        scheduler.schedule(() -> {
-            logger.info("Starting pre-snipe task");
-            // Schedule the task to run every 10 seconds until the snipe time
-            scheduler.scheduleAtFixedRate(() -> {
-                logger.info("Running pre-snipe workflow");
-                runResyBookingWorkflow(_config);
-            }, 0, 10, TimeUnit.SECONDS);
-
-        }, millisUntilPreSnipe, TimeUnit.MILLISECONDS);
+//        scheduler.schedule(() -> {
+//            logger.info("Starting pre-snipe task");
+//            // Schedule the task to run every 10 seconds until the snipe time
+//            scheduler.scheduleAtFixedRate(() -> {
+//                logger.info("Running pre-snipe workflow");
+//                runResyBookingWorkflow(_config);
+//            }, 0, 10, TimeUnit.SECONDS);
+//
+//        }, millisUntilPreSnipe, TimeUnit.MILLISECONDS);
 
         // Task to run exactly at the snipe time
-        scheduler.schedule(() -> {
-            logger.info("Running snipe workflow");
-            runResyBookingWorkflow(_config);
-            logger.info("Shutting down Resy Booking Bot");
-            System.exit(0);
-        }, millisUntilNextSnipe, TimeUnit.MILLISECONDS);    }
+//        scheduler.schedule(() -> {
+//            logger.info("Running snipe workflow");
+//            runResyBookingWorkflow(_config);
+//            logger.info("Shutting down Resy Booking Bot");
+//            System.exit(0);
+//        }, millisUntilNextSnipe, TimeUnit.MILLISECONDS);
+
+        runResyBookingWorkflow(_config);
+        }
 
 
     private static void runResyBookingWorkflow(ClientConfig _config) {
