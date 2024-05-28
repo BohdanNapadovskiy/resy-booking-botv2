@@ -1,8 +1,6 @@
 package org.example;
 
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.example.request.ReservationRequest;
@@ -16,9 +14,8 @@ import org.slf4j.LoggerFactory;
 
 public class ReservationClientImpl {
 
-  private ReservationApi api;
-  private ClientConfig config;
-  private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+  private final ReservationApi api;
+  private final ClientConfig config;
   private final Logger logger = LoggerFactory.getLogger(ReservationClientImpl.class);
 
   public ReservationClientImpl(ClientConfig config) {

@@ -7,6 +7,7 @@ import lombok.SneakyThrows;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -48,9 +49,9 @@ public class ReservationApiImpl implements ReservationApi {
     HttpUrl.Builder urlBuilder = HttpUrl.parse("https://api.resy.com/4/find").newBuilder();
     urlBuilder.addQueryParameter("lat", "0");
     urlBuilder.addQueryParameter("long", "0");
-    urlBuilder.addQueryParameter("day", "2024-05-30");
-    urlBuilder.addQueryParameter("party_size", "6");
-    urlBuilder.addQueryParameter("venue_id", "60834");
+    urlBuilder.addQueryParameter("day", config.getDateOfReservation());
+    urlBuilder.addQueryParameter("party_size", config.getParty_size());
+    urlBuilder.addQueryParameter("venue_id", config.getVenue_id());
     Request getRequest = new Request.Builder()
         .url(urlBuilder.build().toString())
         .header("Host", "api.resy.com")
@@ -106,29 +107,29 @@ public class ReservationApiImpl implements ReservationApi {
   @Override
   @SneakyThrows
   public void bookReservation(ReservationResponse reservation) {
-    try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
-      HttpPost httpPost = new HttpPost("https://api.resy.com/3/book");
-      URI uri = new URIBuilder(httpPost.getURI()).build();
-      httpPost.setURI(uri);
-      httpPost.setHeader("Host", "api.resy.com");
-      httpPost.setHeader("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"");
-      httpPost.setHeader("Cache-Control", "no-cache");
-      httpPost.setHeader("Content-Type", "application/json");
-      httpPost.setHeader(
-          "User-Agent",
-          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
-      );
-      ObjectMapper objectMapper = new ObjectMapper();
-      String json = objectMapper.writeValueAsString(reservation);
-      httpPost.setEntity(new StringEntity(json));
-      CloseableHttpResponse response = httpClient.execute(httpPost);
-      String jsonString = EntityUtils.toString(response.getEntity());
-      if (response.getStatusLine().getStatusCode() == 200) {
-        logger.info("The reservation {} successfully booked", reservation.getBook_token());
-      }
-      else {
-        logger.error("Error while booking the reservation {}", jsonString);
-      }
+    OkHttpClient client = new OkHttpClient();
+    RequestBody requestBody = new MultipartBody.Builder()
+        .setType(MultipartBody.FORM)
+        .addFormDataPart("book_token", String.valueOf(reservation.getBook_token().getValue()))
+        .addFormDataPart("password", "resy.com-venue-details")
+        .build();
+    Request postRequest = new Request.Builder()
+        .url("https://api.resy.com/3/book")
+        .header("Authorization", "ResyAPI api_key=\"VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5\"")
+        .header("Accept-Encoding", "gzip, deflate, br, zstd")
+        .header("Content-Type", "application/json")
+        .header("Accept-Language", "en-US,en;q=0.9,ru;q=0.8,uk;q=0.7")
+        .header("X-Resy-Universal-Auth", config.getApiKey())
+        .post(requestBody)
+        .build();
+    Call call = client.newCall(postRequest);
+    Response response = call.execute();
+    String responseBody = response.body().string();
+    if (response.code() == 201) {
+      logger.info("The reservation {} successfully booked", reservation.getBook_token());
+    }
+    else {
+      logger.error("Error while booking the reservation {}", responseBody);
     }
   }
 
